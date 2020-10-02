@@ -1,12 +1,18 @@
-build: clean
-	GOOS=${goos} go build -o runme
+build:
+	rm -f ./runme
+	go build -o runme
+	./runme
+
+bundle: pre-bundle
+	mkdir -p data/{geographies,files,datasets,boundaries}
+
+	GOOS=${os} go build -o runme
 
 #	REPOS
-	git clone "https://github.com/energyaccessexplorer/website"
-	git clone "https://github.com/energyaccessexplorer/tool"
+	git clone --quiet "https://github.com/energyaccessexplorer/website"
+	git clone --quiet "https://github.com/energyaccessexplorer/tool"
 
 #	HACKS
-	touch tool/extras.mk
 
 	sed -ri \
 		'/\/(get-involved|subscribe|login)/d' \
@@ -28,12 +34,21 @@ build: clean
 		make build; \
 		mv dist ../sources/tool)
 
-	mkdir -p data/{geographies,files,datasets}
+	WORLD=https://world.carajo.no/api \
+	API=http://eaapi.localhost \
+	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess \
+	IDSFILE=${idsfile} \
+	./fetch.sh
 
-	IDSFILE=${idsfile} ./fetch.sh
+	make zip os=${os}
 
-#	BUNDLE
-	zip -r energyaccessexplorer-${goos}.zip sources data runme*
+	make post-bundle
 
-clean:
+zip:
+	zip -q -r energyaccessexplorer-${os}.zip sources data runme*
+
+post-bundle:
+	-rm -rf geoid-*
+
+pre-bundle:
 	-rm -rf website tool sources data runme* geoid-*

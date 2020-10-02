@@ -1,31 +1,68 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"runtime"
+	"syscall"
 )
 
 var (
-	port int
-	ip   string
+	apiport = ":6789"
+	staticport = ":9876"
+	path = "."
 )
 
-func api() {
-	mux := http.NewServeMux()
+func open(url string) error {
+	var cmd string
+	var args []string
 
-	fmt.Println("Running \"api\" on localhost:6789")
-	http.ListenAndServe(":6789", mux)
+	switch runtime.GOOS {
+	case "windows":
+		cmd = "cmd"
+		args = []string{"/c", "start"}
+
+	case "darwin":
+		cmd = "open"
+
+	default: // "linux", "freebsd", "openbsd", "netbsd"
+		cmd = "xdg-open"
+	}
+
+	args = append(args, url)
+
+	return exec.Command(cmd, args...).Start()
 }
 
-func static() {
-	fmt.Println("Running website on localhost:9867")
+func waitcancel() {
+	sig := make(chan os.Signal)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
-	http.HandleFunc("/", http.FileServer(http.Dir("sources")).ServeHTTP)
-	log.Fatal(http.ListenAndServe(":9876", nil))
+	go func() {
+		println("Press Ctrl+C to stop")
+		<-sig
+		println("\nhej då!")
+		os.Exit(0)
+	}()
+
+	select { }
 }
 
 func main() {
+	e, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+
+	path = filepath.Dir(e)
+	println(path)
+
 	go api()
-	static()
+	go static()
+
+	open("http://localhost"+staticport)
+
+	waitcancel()
 }
