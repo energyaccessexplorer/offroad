@@ -87,6 +87,14 @@ func datasets(r req) (s string) {
 	return
 }
 
+func countries(r req) (s string) {
+	if eq("cca3", r) {
+		s = "files/"+_ID+"/flag-geojson.json"
+	}
+
+	return
+}
+
 func files(r req) (s string) {
 	s = r.URL.String()
 	return
@@ -97,6 +105,7 @@ func api() {
 
 	mux.HandleFunc("/geography_boundaries", wrp(boundaries))
 	mux.HandleFunc("/geographies", wrp(geographies))
+	mux.HandleFunc("/countries", wrp(countries))
 	mux.HandleFunc("/datasets", wrp(datasets))
 	mux.HandleFunc("/files/", wrp(files))
 

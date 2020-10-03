@@ -75,12 +75,9 @@ EOF
 
 	cd $DIR
 
-	echo "Fetching flag ${CCA3} ..."
-	curlyone "${WORLD}/countries?select=flag&cca3=eq.${CCA3}" \
-		| jq '.flag' | xxd -r -p > data/files/${GEOID}/flag.svg
-
-	curlyone "${WORLD}/countries?select=geojson&cca3=eq.${CCA3}" \
-		| jq '.geojson' | xxd -r -p > data/files/${GEOID}/flag.geojson
+	echo "Fetching flag and geojson ${CCA3} ..."
+	curly --output data/files/${GEOID}/flag-geojson.json \
+		"${WORLD}/countries?select=flag,geojson&cca3=eq.${CCA3}"
 }
 
 GEOIDS=`paste -s -d "," ${IDSFILE}`
