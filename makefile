@@ -1,3 +1,5 @@
+os ?= linux
+
 build:
 	rm -f ./runme
 	go build -o runme
