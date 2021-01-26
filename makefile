@@ -43,7 +43,7 @@ bundle:
 		bmake build; \
 		mv dist ../sources/tool)
 
-	WORLD=https://world.carajo.no/api \
+	WORLD=https://world.energyaccessexplorer.org \
 	API=http://eaapi.localhost \
 	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess \
 	IDSFILE=${idsfile} \
