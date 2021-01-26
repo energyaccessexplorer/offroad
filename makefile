@@ -5,7 +5,14 @@ build:
 	go build -o runme
 	./runme
 
-bundle: pre-bundle
+bundle:
+.ifndef idsfile
+	@echo "I need idsfile=<somefile>"
+	@exit
+.endif
+
+	bmake pre-bundle
+
 	mkdir -p data/{geographies,files,datasets,boundaries}
 
 	GOOS=${os} go build -o runme
