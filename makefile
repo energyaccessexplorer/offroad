@@ -33,25 +33,25 @@ bundle:
 
 #	BUILD
 	(cd website; \
-		make build; \
-		make deps; \
+		bmake build; \
+		bmake deps; \
 		mv dist ../sources)
 
 	(cd tool; \
-		make deps; \
-		make reconfig env=local; \
-		make build; \
+		bmake deps; \
+		bmake reconfig env=local; \
+		bmake build; \
 		mv dist ../sources/tool)
 
 	WORLD=https://world.carajo.no/api \
 	API=http://eaapi.localhost \
 	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess \
 	IDSFILE=${idsfile} \
-	./fetch.sh
+		./fetch.sh
 
-	make zip os=${os}
+	bmake zip os=${os}
 
-	make post-bundle
+	bmake post-bundle
 
 zip:
 	zip -q -r energyaccessexplorer-${os}.zip sources data runme*
