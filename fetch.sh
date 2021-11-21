@@ -2,91 +2,129 @@
 
 set -e
 
-function printline {
-	echo -en "\e[1A"
-	echo -e "\e[0K\r$1"
-}
-
-function curly {
-	curl --silent --show-error --fail $@
-}
-
-function curlyone {
-	curl --silent --show-error --fail --header 'Accept: application/vnd.pgrst.object+json' $@
-}
-
-GEOGRAPHY_ATTRS='*'
-DATASET_ATTRS='*,category:categories(*),df:_datasets_files(*,file:files(*))'
-
 DIR=`pwd`
+DATADIR=${DIR}/data
+
+DATASET_ATTRS='*,datatype,category:categories(*)'
 
 if [ ! -f "${IDSFILE}" ]; then
 	echo "'${IDSFILE}' file does not exist."
 	exit 1
 fi
 
+function printline {
+	echo -en "\e[1A"
+	echo -e "\e[0K\r$1"
+}
+
+function curly {
+	if ! curl --silent --show-error --fail $@; then
+		echo $@
+	fi
+}
+
+function curlyone {
+	if ! curl --silent --show-error --fail --header 'Accept: application/vnd.pgrst.object+json' $@; then
+		echo $@
+	fi
+}
+
+function store {
+	endpoint=$1
+
+	if [ "$endpoint" = "null" ]; then
+		return
+	fi
+
+	fname=`basename $endpoint`
+	fpath="$DATADIR/files/${fname}"
+
+	printline "    $endpoint"
+
+	if [ ! -e "${fpath}" ]; then
+		curly --output "${fname}" "$endpoint"
+	fi
+}
+
 function fetch {
-	GEOID=$1
+	local gid=$1
 
-	echo "Getting CCA3 for ${GEOID} ..."
-	curlyone "${API}/geographies?select=cca3&id=eq.${GEOID}" \
-		| jq '.cca3' | sed 's/"//g' > geoid-${GEOID}
+	curlyone "${API}/geographies?select=name&id=eq.${gid}" | jq --raw-output '.name' > /tmp/eae-tmpname
+	local FNAME=`cat /tmp/eae-tmpname`;
+	local NAME=`cat /tmp/eae-tmpname | sed s/\ /%20/g`
 
-	CCA3=`cat geoid-${GEOID}`
+	curlyone "${API}/geographies?select=adm&id=eq.${gid}" | jq --raw-output '.adm' > /tmp/eae-tmpadm
+	local ADM=`cat /tmp/eae-tmpadm | sed s/\ /%20/g`
 
-	echo "Fetching geography ${CCA3} ..."
-	curlyone --output data/geographies/${GEOID} \
-		 "${API}/geographies?select=${GEOGRAPHY_ATTRS}&id=eq.${GEOID}"
+	rm -f /tmp/eae-tmpadm /tmp/eae-tmpname
 
-	echo "Fetching geography_boundaries ${CCA3} ..."
-	curlyone --output data/boundaries/${GEOID} \
-		 "${API}/geography_boundaries?&geography_id=eq.${GEOID}"
+	echo $FNAME - adm $ADM
 
-	BID=`cat data/boundaries/${GEOID} | jq '.id' | sed 's/"//g'`
+	echo "    geography"
+	curlyone --output ${DATADIR}/geographies/${gid} \
+		"${API}/geographies?id=eq.${gid}"
 
-	echo "Fetching boundaries ${CCA3} ..."
-	curlyone --output data/datasets/${BID} \
-		 "${API}/datasets?select=${DATASET_ATTRS}&id=eq.${BID}"
+	echo "    datasets collection"
+	curly --output ${DATADIR}/datasets/${gid} \
+		"${API}/datasets?select=${DATASET_ATTRS}&geography_id=eq.${gid}&category_name=neq.outline"
 
-	echo "Fetching datasets for ${CCA3} ..."
-	curly --output data/datasets/${GEOID} \
-		 "${API}/datasets?select=${DATASET_ATTRS}&geography_id=eq.${GEOID}"
+	echo "    division datasets"
+	while read DATASETID; do
+		curlyone --output ${DATADIR}/datasets/${DATASETID} \
+			"${API}/datasets?select=${DATASET_ATTRS}&id=eq.${DATASETID}"
 
-	cd data/files/${GEOID}
-
-	while read file; do
-		url=$STORAGE_URL$file
-		printline "Fetching $url ..."
-		curly -O $url
+		sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${DATASETID}
+		sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${DATASETID}
 	done <<EOF
 `
-cat ${DIR}/data/datasets/${GEOID} \
-	| jq '.[] | .df' \
-	| grep endpoint \
-	| sed -r 's/\s+"endpoint": "([^"]*)",/\1/'
+curly "${API}/datasets?select=id&geography_id=eq.${gid}&category_name=in.(boundaries,outline)" \
+	| jq --raw-output '.[] | .id'
 `
 EOF
 
-	printline "Done."
+	echo "    processed files"
+	echo "    _"
+	while read endpoint; do
+		store $endpoint
+	done <<EOF
+`
+curly "${API}/datasets?&geography_id=eq.${gid}" \
+	| jq --raw-output '.[] | .processed_files | .[] | .endpoint' \
+`
+EOF
 
-	cd $DIR/data/files
-	ln -s ${GEOID} ${CCA3}
-	# mkdir data/files/${CCA3} # should be GEOID
+	printline "    csv files"
+	echo "    _"
+	while read endpoint; do
+		store $endpoint
+	done <<EOF
+`
+cat ${DATADIR}/datasets/${gid} \
+	| jq --raw-output '.[] | .source_files | .[] | if .func == "csv" then .endpoint else null end' \
+`
+EOF
 
-	cd $DIR
+	sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${gid}
+	sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${gid}
 
-	echo "Fetching flag and geojson ${CCA3} ..."
-	curly --output data/files/${GEOID}/flag-geojson.json \
-		"${WORLD}/countries?select=flag,geojson&cca3=eq.${CCA3}"
+	if [ $ADM == "0" ]; then
+		printline "    flag"
+		curlyone "${WORLD}/countries?select=flag&name=eq.${NAME}" \
+			| jq '.flag' \
+			| xxd -revert -plain > ${DATADIR}/files/${FNAME}-flag.svg
+	else
+		printline "    no flag"
+	fi
 }
 
-GEOIDS=`paste -s -d "," ${IDSFILE}`
+echo "Countries list"
+curly "${API}/geographies?adm=eq.0&id=in.(`paste -s -d "," ${IDSFILE}`)" > ${DATADIR}/geographies/all.json
 
-curly "${API}/geographies?online=eq.true&adm=eq.0&id=in.($GEOIDS)" \
-	 > data/geographies/all.json
+echo "Presets"
+curly "${STORAGE_URL}presets.csv" > ${DATADIR}/files/presets.csv
 
 while read id; do
-	cd $DIR
-	mkdir data/files/${id}
+	echo ""
+	echo $id
 	fetch $id
 done <${IDSFILE}

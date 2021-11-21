@@ -19,7 +19,7 @@ func wrp(h func(req) (string)) func(reswr, req) {
 
 	return func(w reswr, r req) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:9876")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization")
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.Method {
@@ -87,28 +87,30 @@ func datasets(r req) (s string) {
 	return
 }
 
-func countries(r req) (s string) {
-	if eq("cca3", r) {
-		s = "files/"+_ID+"/flag-geojson.json"
-	}
+func files(r req) (s string) {
+	url := r.URL.String()
+	ss := strings.Split(url, "/")
+	s = "files/"+ss[len(ss)-1]
 
 	return
 }
 
-func files(r req) (s string) {
-	s = r.URL.String()
+func flags(r req) (s string) {
+	if eq("name", r) {
+		s = "files/"+_ID+"-flag.svg"
+	}
+
 	return
 }
 
 func api() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/geography_boundaries", wrp(boundaries))
 	mux.HandleFunc("/geographies", wrp(geographies))
-	mux.HandleFunc("/countries", wrp(countries))
 	mux.HandleFunc("/datasets", wrp(datasets))
 	mux.HandleFunc("/files/", wrp(files))
+	mux.HandleFunc("/flags", wrp(flags))
 
-	fmt.Println("Running \"api\" on localhost"+apiport)
+	fmt.Println("Running API on localhost"+apiport)
 	http.ListenAndServe(apiport, mux)
 }
