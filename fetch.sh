@@ -4,6 +4,7 @@ set -e
 
 DIR=`pwd`
 DATADIR=${DIR}/data
+FILE_CACHE=${DIR}/file-cache
 
 DATASET_ATTRS='*,datatype,category:categories(*)'
 
@@ -30,20 +31,23 @@ function curlyone {
 }
 
 function store {
-	endpoint=$1
+	local endpoint=$1
 
 	if [ "$endpoint" = "null" ]; then
 		return
 	fi
 
-	fname=`basename $endpoint`
-	fpath="$DATADIR/files/${fname}"
+	local fname=`basename $endpoint`
+	local fcache="$FILE_CACHE/${fname}"
+	local fpath="$DATADIR/files/${fname}"
 
 	printline "    $endpoint"
 
-	if [ ! -e "${fpath}" ]; then
-		curly --output "${fname}" "$endpoint"
+	if [ ! -e "${fcache}" ]; then
+		curly --output "${fcache}" "$endpoint"
 	fi
+
+	cp "${fcache}" "${fpath}"
 }
 
 function fetch {
@@ -62,7 +66,7 @@ function fetch {
 
 	echo "    geography"
 	curlyone --output ${DATADIR}/geographies/${gid} \
-		"${API}/geographies?id=eq.${gid}"
+		"${API}/geographies?id=eq.${gid}&select=*,subgeographies(*)"
 
 	echo "    datasets collection"
 	curly --output ${DATADIR}/datasets/${gid} \
@@ -96,6 +100,10 @@ EOF
 	printline "    csv files"
 	echo "    _"
 	while read endpoint; do
+		if [ "$endpoint" == "" ]; then
+			continue
+		fi
+
 		store $endpoint
 	done <<EOF
 `
@@ -118,7 +126,7 @@ EOF
 }
 
 echo "Countries list"
-curly "${API}/geographies?adm=eq.0&id=in.(`paste -s -d "," ${IDSFILE}`)" > ${DATADIR}/geographies/all.json
+curly "${API}/geographies?adm=eq.0&id=in.(`paste -s -d "," ${IDSFILE}`)&select=*,subgeographies(*)" > ${DATADIR}/geographies/all.json
 
 echo "Presets"
 curly "${STORAGE_URL}presets.csv" > ${DATADIR}/files/presets.csv
