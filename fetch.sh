@@ -4,14 +4,10 @@ set -e
 
 DIR=`pwd`
 DATADIR=${DIR}/data
-FILE_CACHE=${DIR}/file-cache
+FILES_CACHE=${DIR}/files-cache
 
 DATASET_ATTRS='*,datatype,category:categories(*)'
-
-if [ ! -f "${IDSFILE}" ]; then
-	echo "'${IDSFILE}' file does not exist."
-	exit 1
-fi
+GEOGRAPHY_ATTRS='*,subgeographies:parent(*)'
 
 function printline {
 	echo -en "\e[1A"
@@ -38,7 +34,7 @@ function store {
 	fi
 
 	local fname=`basename $endpoint`
-	local fcache="$FILE_CACHE/${fname}"
+	local fcache="$FILES_CACHE/${fname}"
 	local fpath="$DATADIR/files/${fname}"
 
 	printline "    $endpoint"
@@ -48,16 +44,18 @@ function store {
 	fi
 
 	cp "${fcache}" "${fpath}"
+
+	sleep 0.05
 }
 
 function fetch {
-	local gid=$1
+	local GID=$1
 
-	curlyone "${API}/geographies?select=name&id=eq.${gid}" | jq --raw-output '.name' > /tmp/eae-tmpname
+	curlyone "${API}/geographies?select=name&id=eq.${GID}" | jq --raw-output '.name' > /tmp/eae-tmpname
 	local FNAME=`cat /tmp/eae-tmpname`;
 	local NAME=`cat /tmp/eae-tmpname | sed s/\ /%20/g`
 
-	curlyone "${API}/geographies?select=adm&id=eq.${gid}" | jq --raw-output '.adm' > /tmp/eae-tmpadm
+	curlyone "${API}/geographies?select=adm&id=eq.${GID}" | jq --raw-output '.adm' > /tmp/eae-tmpadm
 	local ADM=`cat /tmp/eae-tmpadm | sed s/\ /%20/g`
 
 	rm -f /tmp/eae-tmpadm /tmp/eae-tmpname
@@ -65,23 +63,20 @@ function fetch {
 	echo $FNAME - adm $ADM
 
 	echo "    geography"
-	curlyone --output ${DATADIR}/geographies/${gid} \
-		"${API}/geographies?id=eq.${gid}&select=*,subgeographies(*)"
+	curlyone --output ${DATADIR}/geographies/${GID} "${API}/geographies?id=eq.${GID}&select=${GEOGRAPHY_ATTRS}"
 
 	echo "    datasets collection"
-	curly --output ${DATADIR}/datasets/${gid} \
-		"${API}/datasets?select=${DATASET_ATTRS}&geography_id=eq.${gid}&category_name=neq.outline"
+	curly --output ${DATADIR}/datasets/${GID} "${API}/datasets?select=${DATASET_ATTRS}&geography_id=eq.${GID}&category_name=neq.outline"
 
 	echo "    division datasets"
 	while read DATASETID; do
-		curlyone --output ${DATADIR}/datasets/${DATASETID} \
-			"${API}/datasets?select=${DATASET_ATTRS}&id=eq.${DATASETID}"
+		curlyone --output ${DATADIR}/datasets/${DATASETID} "${API}/datasets?select=${DATASET_ATTRS}&id=eq.${DATASETID}"
 
 		sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${DATASETID}
 		sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${DATASETID}
 	done <<EOF
 `
-curly "${API}/datasets?select=id&geography_id=eq.${gid}&category_name=in.(boundaries,outline)" \
+curly "${API}/datasets?select=id&geography_id=eq.${GID}&category_name=in.(boundaries,outline)" \
 	| jq --raw-output '.[] | .id'
 `
 EOF
@@ -92,7 +87,7 @@ EOF
 		store $endpoint
 	done <<EOF
 `
-curly "${API}/datasets?&geography_id=eq.${gid}" \
+curly "${API}/datasets?&geography_id=eq.${GID}" \
 	| jq --raw-output '.[] | .processed_files | .[] | .endpoint' \
 `
 EOF
@@ -107,13 +102,13 @@ EOF
 		store $endpoint
 	done <<EOF
 `
-cat ${DATADIR}/datasets/${gid} \
+cat ${DATADIR}/datasets/${GID} \
 	| jq --raw-output '.[] | .source_files | .[] | if .func == "csv" then .endpoint else null end' \
 `
 EOF
 
-	sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${gid}
-	sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${gid}
+	sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${GID}
+	sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${GID}
 
 	if [ $ADM == "0" ]; then
 		printline "    flag"
@@ -126,13 +121,14 @@ EOF
 }
 
 echo "Countries list"
-curly "${API}/geographies?adm=eq.0&id=in.(`paste -s -d "," ${IDSFILE}`)&select=*,subgeographies(*)" > ${DATADIR}/geographies/all.json
+IDS=`echo "$@" | tr ' ' ','`
+curly --output ${DATADIR}/geographies/all.json "${API}/geographies?adm=eq.0&id=in.(${IDS})&select=${GEOGRAPHY_ATTRS}"
 
 echo "Presets"
-curly "${STORAGE_URL}presets.csv" > ${DATADIR}/files/presets.csv
+curly --output ${DATADIR}/files/presets.csv "${STORAGE_URL}presets.csv"
 
-while read id; do
+for id in "$@"; do
 	echo ""
 	echo $id
 	fetch $id
-done <${IDSFILE}
+done

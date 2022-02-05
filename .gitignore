@@ -1,6 +1,9 @@
 /runme*
 /data/
-/sources/
+/build/
 /tool/
 /website/
 /energyaccessexplorer-*.zip
+/file-cache/
+/files-cache/
+*.diff

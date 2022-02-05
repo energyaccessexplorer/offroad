@@ -23,42 +23,45 @@ website:
 		website/templates/nav.mustache
 
 	(cd website; \
-		git pull; \
+		git reset --hard; \
+		git pull;)
+
+	touch website.diff
+	patch -p1 <website.diff
+
+	(cd website; \
 		go mod tidy; \
 		bmake build; \
 		bmake deps; \
 		mv dist ../build; \
-		mv assets/lib ../build/)
+		cp -r assets/lib/* ../build/lib;)
 
 tool:
 	test -d tool || \
 		git clone --quiet "https://github.com/energyaccessexplorer/tool"
 
-	./tool-patches
+	(cd tool; \
+		git reset --hard; \
+		git pull;)
+
+	touch tool.diff
+	patch -p1 <tool.diff
 
 	(cd tool; \
-		git pull; \
 		bmake deps; \
 		bmake reconfig env=local; \
 		bmake build; \
 		mv dist ../build/tool)
 
-bundle:
-	bmake clean
+all: clean gobuild website tool fetch zip
 
-	bmake gobuild
-
-	bmake website
-
-	bmake tool
-
-	bmake fetch
-
-	bmake zip os=${os}
+bundle: clean gobuild fetch zip
 
 fetch:
 .ifndef ids
-	@echo "I need ids=<somefile>"
+	@echo 'I need a (space separated) quoted IDS argument:'
+	@echo '	ids="<UUID>[ <UUID>[ ...]]"'
+	@echo ''
 	@exit
 .endif
 
@@ -67,8 +70,7 @@ fetch:
 	WORLD=https://world.energyaccessexplorer.org \
 	API=https://api.energyaccessexplorer.org \
 	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess/ \
-	IDSFILE=${ids} \
-		./fetch.sh
+	./fetch.sh ${ids}
 
 zip:
 	zip -q -r energyaccessexplorer-${os}.zip build data runme*
