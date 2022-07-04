@@ -36,6 +36,8 @@ website:
 		mv dist ../build; \
 		cp -r assets/lib/* ../build/lib;)
 
+	./images.sh
+
 tool:
 	test -d tool || \
 		git clone --quiet "https://github.com/energyaccessexplorer/tool"

@@ -4,6 +4,7 @@
 /tool/
 /website/
 /energyaccessexplorer-*.zip
-/file-cache/
 /files-cache/
+/photos/
+/logos/
 *.diff
