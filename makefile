@@ -60,18 +60,12 @@ all: clean gobuild website tool fetch zip
 bundle: clean gobuild fetch zip
 
 fetch:
-.ifndef ids
-	@echo 'I need a (space separated) quoted IDS argument:'
-	@echo '	ids="<UUID>[ <UUID>[ ...]]"'
-	@echo ''
-	@exit
-.endif
-
 	mkdir -p data/{geographies,files,datasets}
 
 	WORLD=https://world.energyaccessexplorer.org \
 	API=https://api.energyaccessexplorer.org \
 	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess/ \
+	IDSFILE=${IDSFILE} \
 	./fetch.sh ${ids}
 
 zip:

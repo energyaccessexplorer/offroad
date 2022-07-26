@@ -139,15 +139,32 @@ EOF
 	fi
 }
 
+if [ "${IDSFILE}" = "" ]; then
+	IDSFILE=/dev/null
+	IDS=`echo "$@" | tr ' ' ','`
+elif [ -e "${IDSFILE}" ]; then
+	IDS=`paste -s -d "," ${IDSFILE}`
+else
+	echo "Could not figure out IDS"
+	exit 1
+fi
+
 echo "Countries list"
-IDS=`echo "$@" | tr ' ' ','`
 curlyauth --output ${DATADIR}/geographies/all.json "${API}/geographies?adm=eq.0&id=in.(${IDS})&select=${GEOGRAPHY_ATTRS}"
 
 echo "Presets"
 curly --output ${DATADIR}/files/presets.csv "${STORAGE_URL}presets.csv"
 
-for id in "$@"; do
+function f {
 	echo ""
-	echo $id
-	fetch $id
+	echo $1
+	fetch $1
+}
+
+for id in "$@"; do
+	f $id
 done
+
+while read id; do
+	f $id
+done <${IDSFILE}
