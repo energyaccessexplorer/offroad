@@ -69,7 +69,11 @@ fetch:
 	./fetch.sh ${ids}
 
 zip:
+.ifdef ID
+	zip -q -r energyaccessexplorer-${ID}.zip build data runme*
+.else
 	zip -q -r energyaccessexplorer-${os}.zip build data runme*
+.endif
 
 clean:
 	-rm -Rf build data runme*
