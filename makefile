@@ -55,7 +55,7 @@ tool:
 		bmake build; \
 		mv dist ../build/tool)
 
-all: clean gobuild website tool fetch zip
+all: clean gobuild website tool fetch zip os=${os}
 
 bundle: clean gobuild fetch zip
 
