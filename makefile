@@ -11,6 +11,8 @@ gobuild:
 	GOOS=${os} go build -o ${BINARY}
 
 website:
+	mkdir -p build
+
 	test -d website || \
 		git clone --quiet "https://github.com/energyaccessexplorer/website"
 
@@ -33,12 +35,14 @@ website:
 		go mod tidy; \
 		bmake build; \
 		bmake deps; \
-		mv dist ../build; \
-		cp -r assets/lib/* ../build/lib;)
+		mv dist/* ../build/; \
+		cp -r assets/lib ../build/;)
 
 	./images.sh
 
 tool:
+	mkdir -p build
+
 	test -d tool || \
 		git clone --quiet "https://github.com/energyaccessexplorer/tool"
 
@@ -53,7 +57,7 @@ tool:
 		bmake deps; \
 		bmake reconfig env=local; \
 		bmake build; \
-		mv dist ../build/tool)
+		mv dist ../build/tool;)
 
 all: clean gobuild website tool fetch zip os=${os}
 
