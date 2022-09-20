@@ -21,6 +21,7 @@ function printline {
 function curly {
 	if ! curl --silent --show-error --fail $@; then
 		echo $@
+		exit 1
 	fi
 }
 
@@ -29,6 +30,7 @@ function curlyauth {
 		 --header "Authorization: Bearer $TOKEN" \
 		 $@; then
 		echo $@
+		exit 1
 	fi
 }
 
@@ -37,6 +39,7 @@ function curlyone {
 		 --header 'Accept: application/vnd.pgrst.object+json' \
 		 $@; then
 		echo $@
+		exit 1
 	fi
 }
 
@@ -46,6 +49,7 @@ function curlyauthone {
 		 --header 'Accept: application/vnd.pgrst.object+json' \
 		 $@; then
 		echo $@
+		exit 1
 	fi
 }
 
