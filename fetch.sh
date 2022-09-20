@@ -10,8 +10,12 @@ DATASET_ATTRS='*,datatype,category:categories(*)'
 GEOGRAPHY_ATTRS='*,subgeographies:parent(*)'
 
 function printline {
-	echo -en "\e[1A"
-	echo -e "\e[0K\r$1"
+	if [ -t 1 ]; then
+		echo -en "\e[1A"
+		echo -e "\e[0K\r$1"
+	else
+		echo "$1"
+	fi
 }
 
 function curly {
