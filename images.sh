@@ -4,9 +4,13 @@ LIST=`mktemp`
 
 mkdir -p logos photos
 
-printline() {
-	echo -en "\e[1A"
-	echo -e "\e[0K\r$1"
+function printline {
+	if [ -t 1 ]; then
+		echo -en "\e[1A"
+		echo -e "\e[0K\r$1"
+	else
+		echo "$1"
+	fi
 }
 
 echo ""
