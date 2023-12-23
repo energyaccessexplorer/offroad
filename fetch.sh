@@ -6,27 +6,32 @@ DIR=`pwd`
 DATADIR=${DIR}/data
 FILES_CACHE=${DIR}/files-cache
 
+CURL=`which curl`
+CURL="$CURL --disable --silent --show-error --fail"
+
+mkdir -p $FILES_CACHE
+
 DATASET_ATTRS='*,datatype,category:categories(*)'
 GEOGRAPHY_ATTRS='*,subgeographies:parent(*)'
 
 function printline {
 	if [ -t 1 ]; then
-		echo -en "\e[1A"
-		echo -e "\e[0K\r$1"
+		printf "\e[1A"
+		printf "\e[0K\r%s\n" "$1"
 	else
 		echo "$1"
 	fi
 }
 
 function curly {
-	if ! curl --silent --show-error --fail $@; then
+	if ! $CURL $@; then
 		echo $@
 		exit 1
 	fi
 }
 
 function curlyauth {
-	if ! curl --silent --show-error --fail \
+	if ! $CURL \
 		 --header "Authorization: Bearer $TOKEN" \
 		 $@; then
 		echo $@
@@ -35,7 +40,7 @@ function curlyauth {
 }
 
 function curlyone {
-	if ! curl --silent --show-error --fail \
+	if ! $CURL \
 		 --header 'Accept: application/vnd.pgrst.object+json' \
 		 $@; then
 		echo $@
@@ -44,7 +49,7 @@ function curlyone {
 }
 
 function curlyauthone {
-	if ! curl --silent --show-error --fail \
+	if ! $CURL \
 		 --header "Authorization: Bearer $TOKEN" \
 		 --header 'Accept: application/vnd.pgrst.object+json' \
 		 $@; then
@@ -93,14 +98,14 @@ function fetch {
 	curlyauthone --output ${DATADIR}/geographies/${GID} "${API}/geographies?id=eq.${GID}&select=${GEOGRAPHY_ATTRS}"
 
 	echo "    datasets collection"
-	curlyauth --output ${DATADIR}/datasets/${GID} "${API}/datasets?select=${DATASET_ATTRS}&geography_id=eq.${GID}&category_name=neq.outline"
+	curlyauth --output ${DATADIR}/datasets/${GID} "${API}/datasets?select=${DATASET_ATTRS}&geography_id=eq.${GID}"
 
 	echo "    division datasets"
 	while read DATASETID; do
 		curlyauthone --output ${DATADIR}/datasets/${DATASETID} "${API}/datasets?select=${DATASET_ATTRS}&id=eq.${DATASETID}"
 
-		sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${DATASETID}
-		sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${DATASETID}
+		sed -i.orig "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${DATASETID}
+		sed -i.orig "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${DATASETID}
 	done <<EOF
 `
 curlyauth "${API}/datasets?select=id&geography_id=eq.${GID}&category_name=in.(boundaries,outline)" \
@@ -134,8 +139,8 @@ cat ${DATADIR}/datasets/${GID} \
 `
 EOF
 
-	sed -i "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${GID}
-	sed -i "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${GID}
+	sed -i.orig "s;/paver-outputs/;/;g" ${DATADIR}/datasets/${GID}
+	sed -i.orig "s;$STORAGE_URL;;g" ${DATADIR}/datasets/${GID}
 
 	if [ $ADM == "0" ]; then
 		printline "    flag"

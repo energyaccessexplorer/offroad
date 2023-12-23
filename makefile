@@ -16,11 +16,11 @@ website:
 	test -d website || \
 		git clone --quiet "https://github.com/energyaccessexplorer/website"
 
-	sed -ri \
+	sed -r -i.orig \
 		'/\/(get-involved|subscribe|login)/d' \
 		website/routes.tsv
 
-	sed -ri \
+	sed -r -i.orig \
 		'/\/(get-involved)/,+4d' \
 		website/templates/nav.mustache
 
@@ -35,7 +35,7 @@ website:
 		go mod tidy; \
 		bmake build; \
 		bmake deps; \
-		mv dist/* ../build/; \
+		cp -r dist/* ../build/; \
 		cp -r assets/lib ../build/;)
 
 	./images.sh
@@ -57,7 +57,7 @@ tool:
 		bmake deps; \
 		bmake reconfig env=local; \
 		bmake build; \
-		mv dist ../build/tool;)
+		cp -r dist/* ../build/tool;)
 
 all: clean gobuild website tool fetch zip os=${os}
 
@@ -69,6 +69,7 @@ fetch:
 	WORLD=https://world.energyaccessexplorer.org \
 	API=https://api.energyaccessexplorer.org \
 	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess/ \
+	TOKEN=${OFFROAD_TOKEN} \
 	IDSFILE=${IDSFILE} \
 	./fetch.sh ${ids}
 
