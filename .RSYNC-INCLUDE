@@ -1,0 +1,10 @@
+.git
+.gitignore
+LICENSE
+api.go
+fetch.sh
+go.mod
+images.sh
+makefile
+server.go
+static.go

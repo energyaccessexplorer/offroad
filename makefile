@@ -61,7 +61,7 @@ tool:
 
 all: clean gobuild website tool fetch zip os=${os}
 
-bundle: clean gobuild fetch zip
+bundle: gobuild fetch zip os=${os}
 
 fetch:
 	mkdir -p data/{geographies,files,datasets}
@@ -82,5 +82,10 @@ zip:
 
 clean:
 	-rm -Rf build data runme*
+
+deploy:
+	rsync -OPrv --checksum \
+		--files-from=.RSYNC-INCLUDE \
+		./ ${EAE_PAVER}:/var/cache/offroad
 
 .PHONY: website tool
