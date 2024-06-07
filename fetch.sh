@@ -12,7 +12,7 @@ CURL="$CURL --disable --silent --show-error --fail"
 mkdir -p $FILES_CACHE
 
 DATASET_ATTRS='*,datatype,category:categories(*)'
-GEOGRAPHY_ATTRS='*,subgeographies:parent(*)'
+GEOGRAPHY_ATTRS='*'
 
 function printline {
 	if [ -t 1 ]; then

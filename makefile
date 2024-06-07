@@ -1,3 +1,5 @@
+.include ".env"
+
 os ?= linux
 
 BINARY = runme

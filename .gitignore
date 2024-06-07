@@ -1,3 +1,4 @@
+/.env
 /runme*
 /data/
 /build/
@@ -7,5 +8,5 @@
 /files-cache/
 /photos/
 /logos/
-*.diff
 /offroad
+*.diff
