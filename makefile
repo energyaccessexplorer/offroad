@@ -33,7 +33,7 @@ website:
 	cp website.mk website/.env
 
 	(cd website; \
-		patch -p1 <offroad.diff \
+		patch -p1 <offroad.diff; \
 		go mod tidy; \
 		bmake build; \
 		bmake deps; \
@@ -55,7 +55,7 @@ tool:
 	cp tool.mk tool/.env
 
 	(cd tool; \
-		patch -p1 <offroad.diff \
+		patch -p1 <offroad.diff; \
 		bmake deps; \
 		bmake reconfig env=local; \
 		bmake build; \
