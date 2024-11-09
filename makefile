@@ -35,8 +35,7 @@ website:
 	(cd website; \
 		patch -p1 <offroad.diff; \
 		go mod tidy; \
-		bmake build; \
-		bmake deps; \
+		bmake clean build; \
 		cp -r dist/* ../build/; \
 		cp -r assets/lib ../build/;)
 
@@ -56,9 +55,8 @@ tool:
 
 	(cd tool; \
 		patch -p1 <offroad.diff; \
-		bmake deps; \
 		bmake reconfig env=local; \
-		bmake build; \
+		bmake clean deps build; \
 		cp -r dist/* ../build/tool;)
 
 all: clean gobuild website tool fetch zip os=${os}
