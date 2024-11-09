@@ -30,6 +30,8 @@ website:
 		git reset --hard; \
 		git pull;)
 
+	cp website.mk website/.env
+
 	touch website.diff
 	patch -p1 <website.diff
 
@@ -52,6 +54,8 @@ tool:
 		git reset --hard; \
 		git pull;)
 
+	cp tool.mk tool/.env
+
 	touch tool.diff
 	patch -p1 <tool.diff
 
@@ -63,7 +67,7 @@ tool:
 
 all: clean gobuild website tool fetch zip os=${os}
 
-bundle: gobuild fetch zip os=${os}
+bundle: gobuild fetch zip success os=${os}
 
 fetch:
 	mkdir -p data/{geographies,files,datasets}
@@ -80,6 +84,11 @@ zip:
 	zip -q -r energyaccessexplorer-${ID}.zip build data runme*
 .else
 	zip -q -r energyaccessexplorer-${os}.zip build data runme*
+.endif
+
+success:
+.ifdef ID
+	@ echo "Download build at https://paver.energyaccessexplorer.org/departer/builds/energyaccessexplorer-${ID}.zip"
 .endif
 
 clean:
