@@ -32,7 +32,6 @@ website:
 
 	cp website.mk website/.env
 
-	touch website.diff
 	patch -p1 <website.diff
 
 	(cd website; \
@@ -56,7 +55,6 @@ tool:
 
 	cp tool.mk tool/.env
 
-	touch tool.diff
 	patch -p1 <tool.diff
 
 	(cd tool; \
