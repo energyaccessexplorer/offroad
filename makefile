@@ -70,10 +70,12 @@ bundle: gobuild fetch zip success os=${os}
 fetch:
 	mkdir -p data/{geographies,files,datasets}
 
+	@ echo "Running fetch.sh"
+
+	@ TOKEN=${OFFROAD_TOKEN} \
 	WORLD=https://world.energyaccessexplorer.org \
 	API=https://api.energyaccessexplorer.org \
 	STORAGE_URL=https://wri-public-data.s3.amazonaws.com/EnergyAccess/ \
-	TOKEN=${OFFROAD_TOKEN} \
 	IDSFILE=${IDSFILE} \
 	./fetch.sh ${ids}
 
