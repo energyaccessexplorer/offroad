@@ -11,7 +11,7 @@ CURL="$CURL --disable --silent --show-error --fail"
 
 mkdir -p $FILES_CACHE
 
-DATASET_ATTRS='*,datatype,category:categories(*)'
+DATASET_ATTRS='*,type,category:categories(*)'
 GEOGRAPHY_ATTRS='*'
 
 function printline {
